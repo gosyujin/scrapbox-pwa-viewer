@@ -1,4 +1,4 @@
-# scrapbox_viewer
+# scrapbox-pwa-viewer
 
 Scrapboxプロジェクトのエクスポート JSON（設定画面の「Export」→ JSON）を、
 単一の自己完結 HTML ファイル（+ Service Worker）に変換するビルドスクリプト。
