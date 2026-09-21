@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>{{TITLE}}</title>
+<meta name="scrapbox-exported-at" content="{{EXPORTED_AT}}">
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,9 +21,13 @@
       <span class="brand">{{TITLE}}</span>
       <button id="home-btn" aria-label="トップページ" title="トップページ">&#9750;</button>
       <input id="search-box" type="text" placeholder="検索 (/)" autocomplete="off">
+      <button id="update-btn" aria-label="最新データを確認" title="最新データを確認">&#8635;</button>
     </div>
     <div id="list-view">
-      <div id="search-meta"></div>
+      <div id="list-header">
+        <div id="data-version">データ取得: {{EXPORTED_AT}}</div>
+        <div id="search-meta"></div>
+      </div>
       <div id="page-list"></div>
     </div>
   </div>
@@ -34,12 +39,6 @@
 <script type="application/json" id="sb-data">{{DATA_JSON}}</script>
 <script>
 {{APP_JS}}
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    var page = encodeURIComponent(location.pathname.split("/").pop() + location.search);
-    navigator.serviceWorker.register("sw.js?page=" + page).catch(function () {});
-  });
-}
 </script>
 </body>
 </html>

@@ -393,6 +393,7 @@ def build(input_path, output_path, title_override=None):
         .replace("{{STYLE}}", style)
         .replace("{{DATA_JSON}}", json_str)
         .replace("{{APP_JS}}", app_js)
+        .replace("{{EXPORTED_AT}}", esc(exported_str or "不明"))
     )
 
     out_dir = os.path.dirname(os.path.abspath(output_path))
@@ -400,8 +401,9 @@ def build(input_path, output_path, title_override=None):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(out_html)
 
+    cache_version = str(exported_ts) if exported_ts else "0"
     with open(os.path.join(HERE, "templates", "sw.js"), encoding="utf-8") as f:
-        sw_js = f.read()
+        sw_js = f.read().replace("{{CACHE_VERSION}}", cache_version)
     with open(os.path.join(out_dir, "sw.js"), "w", encoding="utf-8") as f:
         f.write(sw_js)
 

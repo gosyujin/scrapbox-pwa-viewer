@@ -27,6 +27,7 @@
   var searchBox = document.getElementById("search-box");
   var searchMeta = document.getElementById("search-meta");
   var homeBtn = document.getElementById("home-btn");
+  var updateBtn = document.getElementById("update-btn");
   var toastEl = document.getElementById("toast");
   var MOBILE_WIDTH = 760;
 
@@ -232,4 +233,69 @@
 
   renderList();
   route();
+
+  // ---------------------------------------------------------------------
+  // Service worker: offline caching + update detection.
+  //
+  // Each rebuild embeds the export timestamp into sw.js's CACHE_NAME, so
+  // its bytes differ from the previously installed worker whenever the
+  // Scrapbox data actually changed. The browser diffs sw.js on every
+  // registration.update() call; a diff installs the new worker (which
+  // re-caches the page under the new cache name), and since it calls
+  // self.skipWaiting() it takes over almost immediately. When that happens
+  // the "controllerchange" listener below reloads the page, so a fresh
+  // export applies itself the next time the app is opened while online --
+  // no manual step needed in the common case. The update button just forces
+  // an immediate check instead of waiting for the next foreground/reload.
+  // ---------------------------------------------------------------------
+  var swReg = null;
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      var page = encodeURIComponent(location.pathname.split("/").pop() + location.search);
+      navigator.serviceWorker.register("sw.js?page=" + page).then(function (reg) {
+        swReg = reg;
+      }).catch(function () {});
+    });
+
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      location.reload();
+    });
+
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && swReg) {
+        swReg.update().catch(function () {});
+      }
+    });
+  }
+
+  if (updateBtn) {
+    updateBtn.addEventListener("click", function () {
+      if (!("serviceWorker" in navigator)) {
+        showToast("このブラウザは更新チェックに対応していません");
+        return;
+      }
+      if (navigator.onLine === false) {
+        showToast("オフラインのため更新チェックできません");
+        return;
+      }
+      showToast("最新データを確認中…");
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (!reg) {
+          showToast("更新チェックに失敗しました");
+          return;
+        }
+        swReg = reg;
+        return reg.update().then(function () {
+          setTimeout(function () {
+            if (!reg.waiting && !reg.installing) {
+              showToast("最新の状態です");
+            }
+          }, 1500);
+        });
+      }).catch(function () {
+        showToast("更新チェックに失敗しました（オフラインの可能性）");
+      });
+    });
+  }
 })();

@@ -1,6 +1,14 @@
 // Cache-first-with-background-refresh service worker for the (single-file)
 // Scrapbox viewer, so it keeps working fully offline after the first visit.
-var CACHE_NAME = "sb-viewer-v1";
+//
+// CACHE_NAME is derived from the Scrapbox export timestamp at build time, so
+// re-running build.py on a fresh export changes this file's bytes. The
+// browser diffs sw.js on every registration.update() check; a byte change
+// installs this new worker, which re-caches the page under the new name and
+// (via activate) drops the old one. The page listens for "controllerchange"
+// and reloads once this worker takes over, so a fresh export applies itself
+// automatically the next time the app is opened while online.
+var CACHE_NAME = "sb-viewer-{{CACHE_VERSION}}";
 
 self.addEventListener("install", function (event) {
   var page = new URL(self.location.href).searchParams.get("page");
@@ -12,6 +20,10 @@ self.addEventListener("install", function (event) {
     })
   );
   self.skipWaiting();
+});
+
+self.addEventListener("message", function (event) {
+  if (event.data === "SKIP_WAITING") self.skipWaiting();
 });
 
 self.addEventListener("activate", function (event) {
