@@ -1,0 +1,9 @@
+{
+  "name": "kk_AtakaのScrapbox",
+  "short_name": "kk_AtakaのScr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2b7de9"
+}

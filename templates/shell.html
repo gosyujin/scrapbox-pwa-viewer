@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>{{TITLE}}</title>
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="{{TITLE}}">
+<style>
+{{STYLE}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div id="sidebar-top">
+      <span class="brand">{{TITLE}}</span>
+      <button id="home-btn" aria-label="トップページ" title="トップページ">&#9750;</button>
+      <input id="search-box" type="text" placeholder="検索 (/)" autocomplete="off">
+    </div>
+    <div id="list-view">
+      <div id="search-meta"></div>
+      <div id="page-list"></div>
+    </div>
+  </div>
+  <div class="content-view">
+    <div id="main"></div>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+<script type="application/json" id="sb-data">{{DATA_JSON}}</script>
+<script>
+{{APP_JS}}
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    var page = encodeURIComponent(location.pathname.split("/").pop() + location.search);
+    navigator.serviceWorker.register("sw.js?page=" + page).catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
