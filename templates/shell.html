@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>{{TITLE}}</title>
 <meta name="scrapbox-exported-at" content="{{EXPORTED_AT}}">
+<meta name="build-commit" content="{{BUILD_COMMIT}}">
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -18,7 +19,7 @@
 <div id="app">
   <div id="sidebar">
     <div id="sidebar-top">
-      <div id="data-version">データ取得: {{EXPORTED_AT}}</div>
+      <div id="data-version">データ取得: {{EXPORTED_AT}} ／ ビルド: {{BUILD_COMMIT}}</div>
       <div id="top-controls">
         <span class="brand">{{TITLE}}</span>
         <button id="home-btn" aria-label="トップページ" title="トップページ">&#9750;</button>

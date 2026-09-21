@@ -12,6 +12,7 @@ import html
 import json
 import os
 import re
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -341,6 +342,25 @@ def render_body(body_lines, link_lookup):
 # ---------------------------------------------------------------------------
 
 
+def git_commit_hash():
+    """Short hash of the commit HEAD points to right now.
+
+    Since docs/index.html is generated *before* it's committed, this is
+    necessarily the previous commit, not the one that will actually contain
+    this exact output -- there's no way to know a commit's own hash before
+    creating it. It's still useful as a version marker: compare it against
+    GitHub's commit list to see whether a device has picked up a push yet.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=HERE, capture_output=True, text=True, check=True,
+        )
+        return out.stdout.strip()
+    except Exception:
+        return "unknown"
+
+
 def build(input_path, output_path, title_override=None):
     with open(input_path, encoding="utf-8") as f:
         data = json.load(f)
@@ -384,6 +404,8 @@ def build(input_path, output_path, title_override=None):
     if exported_ts:
         exported_str = datetime.datetime.fromtimestamp(exported_ts).strftime("%Y-%m-%d %H:%M")
 
+    build_commit = git_commit_hash()
+
     payload = {
         "pages": pages_out,
         "order": order,
@@ -409,6 +431,7 @@ def build(input_path, output_path, title_override=None):
         .replace("{{DATA_JSON}}", json_str)
         .replace("{{APP_JS}}", app_js)
         .replace("{{EXPORTED_AT}}", esc(exported_str or "不明"))
+        .replace("{{BUILD_COMMIT}}", esc(build_commit))
     )
 
     out_dir = os.path.dirname(os.path.abspath(output_path))
@@ -416,7 +439,11 @@ def build(input_path, output_path, title_override=None):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(out_html)
 
-    cache_version = str(exported_ts) if exported_ts else "0"
+    # Tied to the data export timestamp AND the build commit, so either a
+    # fresh export or a code-only change (templates, build.py) busts the
+    # cache -- a re-export alone previously left sw.js byte-identical
+    # across pushes that only changed code, so browsers never saw an update.
+    cache_version = (str(exported_ts) if exported_ts else "0") + "-" + build_commit
     with open(os.path.join(HERE, "templates", "sw.js"), encoding="utf-8") as f:
         sw_js = f.read().replace("{{CACHE_VERSION}}", cache_version)
     with open(os.path.join(out_dir, "sw.js"), "w", encoding="utf-8") as f:

@@ -237,18 +237,26 @@
   // ---------------------------------------------------------------------
   // Service worker: offline caching + update detection.
   //
-  // Each rebuild embeds the export timestamp into sw.js's CACHE_NAME, so
-  // its bytes differ from the previously installed worker whenever the
-  // Scrapbox data actually changed. The browser diffs sw.js on every
-  // registration.update() call; a diff installs the new worker (which
-  // re-caches the page under the new cache name), and since it calls
-  // self.skipWaiting() it takes over almost immediately. When that happens
-  // the "controllerchange" listener below reloads the page, so a fresh
-  // export applies itself the next time the app is opened while online --
-  // no manual step needed in the common case. The update button just forces
-  // an immediate check instead of waiting for the next foreground/reload.
+  // Each rebuild embeds the export timestamp AND the build commit into
+  // sw.js's CACHE_NAME, so its bytes differ from the previously installed
+  // worker whenever either the Scrapbox data or the code changed. The
+  // browser diffs sw.js on every registration.update() call; a diff
+  // installs the new worker (which re-caches the page under the new cache
+  // name), and since it calls self.skipWaiting() it takes over almost
+  // immediately. When that happens the "controllerchange" listener below
+  // reloads the page, so a fresh build applies itself automatically the
+  // next time the app is opened/foregrounded while online. That soft check
+  // isn't always prompt in every browser though, so the update button below
+  // does a hard reset instead (unregister + clear caches + reload) as a
+  // guaranteed fallback.
   // ---------------------------------------------------------------------
   var swReg = null;
+
+  // Drop the update button's cache-busting "?_r=..." param once it's done
+  // its job, so the cached page URL (and the address bar) stay clean.
+  if (/[?&]_r=\d+/.test(location.search)) {
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", function () {
@@ -270,31 +278,35 @@
   }
 
   if (updateBtn) {
+    // A soft registration.update() check turned out to be unreliable in
+    // practice (some browsers -- notably iOS Safari as a home-screen app --
+    // don't always run it promptly), so the button does a hard reset
+    // instead: drop the service worker and its caches entirely, then
+    // reload with a cache-busting query so the network fetch can't be
+    // served from anywhere stale, and re-register fresh from scratch.
     updateBtn.addEventListener("click", function () {
-      if (!("serviceWorker" in navigator)) {
-        showToast("このブラウザは更新チェックに対応していません");
-        return;
-      }
       if (navigator.onLine === false) {
-        showToast("オフラインのため更新チェックできません");
+        showToast("オフラインのため更新できません");
         return;
       }
-      showToast("最新データを確認中…");
-      navigator.serviceWorker.getRegistration().then(function (reg) {
-        if (!reg) {
-          showToast("更新チェックに失敗しました");
-          return;
-        }
-        swReg = reg;
-        return reg.update().then(function () {
-          setTimeout(function () {
-            if (!reg.waiting && !reg.installing) {
-              showToast("最新の状態です");
-            }
-          }, 1500);
+      showToast("最新データを取得中…");
+      var cleanup = Promise.resolve();
+      if ("serviceWorker" in navigator) {
+        cleanup = navigator.serviceWorker.getRegistrations().then(function (regs) {
+          return Promise.all(regs.map(function (r) { return r.unregister(); }));
         });
+      }
+      if ("caches" in window) {
+        cleanup = cleanup.then(function () {
+          return caches.keys().then(function (keys) {
+            return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+          });
+        });
+      }
+      cleanup.then(function () {
+        location.href = location.pathname + "?_r=" + Date.now() + location.hash;
       }).catch(function () {
-        showToast("更新チェックに失敗しました（オフラインの可能性）");
+        location.reload();
       });
     });
   }
