@@ -29,7 +29,75 @@
   var homeBtn = document.getElementById("home-btn");
   var updateBtn = document.getElementById("update-btn");
   var toastEl = document.getElementById("toast");
+  var notesCountEl = document.getElementById("notes-count");
+  var notesCopyBtn = document.getElementById("notes-copy-btn");
+  var notesClearBtn = document.getElementById("notes-clear-btn");
+  var notesFallback = document.getElementById("notes-fallback");
+  var notesFallbackText = document.getElementById("notes-fallback-text");
+  var notesFallbackClose = document.getElementById("notes-fallback-close");
   var MOBILE_WIDTH = 760;
+
+  // -----------------------------------------------------------------------
+  // Per-page memo, kept in this browser's localStorage only (not part of
+  // the Scrapbox export). Meant as a scratchpad while offline -- write
+  // corrections/additions per page, then use "メモを全部コピー" once back
+  // online to pull everything into one block of text and paste it into the
+  // real Scrapbox project by hand.
+  // -----------------------------------------------------------------------
+  var NOTE_PREFIX = "sbnote:";
+
+  function getNote(id) {
+    try {
+      return localStorage.getItem(NOTE_PREFIX + id) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function setNote(id, text) {
+    try {
+      if (text.trim() === "") {
+        localStorage.removeItem(NOTE_PREFIX + id);
+      } else {
+        localStorage.setItem(NOTE_PREFIX + id, text);
+      }
+    } catch (e) {}
+  }
+
+  function allNoteIds() {
+    var ids = [];
+    try {
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf(NOTE_PREFIX) === 0) ids.push(k.slice(NOTE_PREFIX.length));
+      }
+    } catch (e) {}
+    return ids;
+  }
+
+  function updateNotesBar() {
+    var ids = allNoteIds();
+    if (notesCountEl) notesCountEl.textContent = ids.length ? ids.length + " 件のメモ" : "メモなし";
+    if (notesCopyBtn) notesCopyBtn.disabled = ids.length === 0;
+    if (notesClearBtn) notesClearBtn.disabled = ids.length === 0;
+  }
+
+  function buildNotesText() {
+    return allNoteIds().map(function (id) {
+      var text = getNote(id).trim();
+      if (!text) return null;
+      var title = pages[id] ? pages[id].t : id;
+      return "[" + title + "]\n" + text;
+    }).filter(function (part) { return part; }).join("\n\n");
+  }
+
+  function showNotesFallback(text) {
+    if (!notesFallback) return;
+    notesFallbackText.value = text;
+    notesFallback.classList.remove("hidden");
+    notesFallbackText.focus();
+    notesFallbackText.select();
+  }
 
   function fmtDate(ts) {
     if (!ts) return "";
@@ -100,8 +168,9 @@
       var pid = shown[j];
       var pg = pages[pid];
       var snip = q ? snippetFor(pid, q) : "";
+      var noteBadge = getNote(pid) ? '<span class="note-badge" title="メモあり">&#9998;</span> ' : "";
       html.push('<a class="page-list-item" data-id="' + pid + '" href="#p/' + encodeURIComponent(pid) + '">' +
-        '<div class="title">' + highlight(pg.t, q) + '</div>' +
+        '<div class="title">' + noteBadge + highlight(pg.t, q) + '</div>' +
         '<div class="updated">' + fmtDate(pg.u) + '</div>' +
         (snip ? '<div class="snippet">' + highlight(snip, q) + '</div>' : '') +
         '</a>');
@@ -158,8 +227,23 @@
       '<div class="page-meta">更新: ' + fmtDate(p.u) + ' ／ 作成: ' + fmtDate(p.c) + ' ／ 閲覧数: ' + (p.v || 0) + '</div>' +
       '</div>' +
       '<div class="page-body">' + p.h + '</div>' +
+      '<div class="page-notes">' +
+      '<h2>メモ（この端末にのみ保存）</h2>' +
+      '<textarea class="note-textarea" placeholder="このページへのメモを入力…"></textarea>' +
+      '</div>' +
       backlinksHtml;
     mainEl.scrollTop = 0;
+
+    var noteEl = mainEl.querySelector(".note-textarea");
+    noteEl.value = getNote(id);
+    var noteTimer = null;
+    noteEl.addEventListener("input", function () {
+      clearTimeout(noteTimer);
+      noteTimer = setTimeout(function () {
+        setNote(id, noteEl.value);
+        updateNotesBar();
+      }, 400);
+    });
   }
 
   function route() {
@@ -231,8 +315,48 @@
     }
   });
 
+  if (notesCopyBtn) {
+    notesCopyBtn.addEventListener("click", function () {
+      var text = buildNotesText();
+      if (!text) {
+        showToast("メモがありません");
+        return;
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          showToast("コピーしました");
+        }).catch(function () {
+          showNotesFallback(text);
+        });
+      } else {
+        showNotesFallback(text);
+      }
+    });
+  }
+
+  if (notesClearBtn) {
+    notesClearBtn.addEventListener("click", function () {
+      var ids = allNoteIds();
+      if (!ids.length) return;
+      if (!confirm(ids.length + " 件のメモを全て削除します。よろしいですか？")) return;
+      ids.forEach(function (id) { setNote(id, ""); });
+      updateNotesBar();
+      renderList();
+      var noteEl = mainEl.querySelector(".note-textarea");
+      if (noteEl) noteEl.value = "";
+      showToast("削除しました");
+    });
+  }
+
+  if (notesFallbackClose) {
+    notesFallbackClose.addEventListener("click", function () {
+      notesFallback.classList.add("hidden");
+    });
+  }
+
   renderList();
   route();
+  updateNotesBar();
 
   // ---------------------------------------------------------------------
   // Service worker: offline caching + update detection.

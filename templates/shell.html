@@ -28,6 +28,11 @@
       </div>
     </div>
     <div id="list-view">
+      <div id="notes-bar">
+        <span id="notes-count"></span>
+        <button id="notes-copy-btn">メモを全部コピー</button>
+        <button id="notes-clear-btn" title="保存済みメモを全削除">クリア</button>
+      </div>
       <div id="search-meta"></div>
       <div id="page-list"></div>
     </div>
@@ -37,6 +42,13 @@
   </div>
 </div>
 <div id="toast" class="toast"></div>
+<div id="notes-fallback" class="modal-overlay hidden">
+  <div class="modal-box">
+    <p>クリップボードに自動コピーできませんでした。下のテキストを全選択してコピーしてください。</p>
+    <textarea id="notes-fallback-text" readonly></textarea>
+    <button id="notes-fallback-close">閉じる</button>
+  </div>
+</div>
 <script type="application/json" id="sb-data">{{DATA_JSON}}</script>
 <script>
 {{APP_JS}}
