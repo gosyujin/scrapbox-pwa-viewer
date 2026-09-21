@@ -230,14 +230,14 @@ ul.outline {
 }
 
 ul.outline ul.outline {
-  padding-left: 1.35em;
+  padding-left: 0.5em;
   border-left: 1px solid var(--border);
-  margin-left: 0.3em;
+  margin-left: 0.1em;
 }
 
 ul.outline > li {
   position: relative;
-  padding: 2px 0 2px 0.9em;
+  padding: 2px 0 2px 0.6em;
   word-wrap: break-word;
 }
 
@@ -409,9 +409,19 @@ a.link.external::after { content: " \2197"; font-size: 0.75em; opacity: 0.6; }
     min-height: 0;
   }
 
-  #main { flex: 1 1 auto; min-height: 0; padding: 14px; }
+  #main { flex: 1 1 auto; min-height: 0; padding: 14px 10px; }
 
   #app.mode-page #sidebar { flex: 0 0 auto; }
   #app.mode-page #list-view { display: none; }
   #app.mode-page .content-view { display: flex; flex: 1 1 auto; }
+
+  /* Narrow screens can't afford the desktop indent width once nesting
+     goes 3-4 levels deep, so tighten it further here. */
+  ul.outline ul.outline {
+    padding-left: 0.3em;
+    margin-left: 0.05em;
+  }
+  ul.outline > li {
+    padding-left: 0.45em;
+  }
 }
