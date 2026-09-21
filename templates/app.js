@@ -28,6 +28,7 @@
   var searchMeta = document.getElementById("search-meta");
   var homeBtn = document.getElementById("home-btn");
   var updateBtn = document.getElementById("update-btn");
+  var randomBtn = document.getElementById("random-btn");
   var toastEl = document.getElementById("toast");
   var notesCountEl = document.getElementById("notes-count");
   var notesCopyBtn = document.getElementById("notes-copy-btn");
@@ -302,6 +303,21 @@
     }
     searchBox.blur();
   });
+
+  if (randomBtn) {
+    randomBtn.addEventListener("click", function () {
+      if (!order.length) return;
+      var currentId = (location.hash.match(/^#p\/(.+)$/) || [])[1];
+      var pick = order[Math.floor(Math.random() * order.length)];
+      // One retry so it doesn't visibly "land on the same page" when you
+      // already happen to be there -- not a big deal either way with 10000+
+      // pages, but cheap to avoid.
+      if (currentId && decodeURIComponent(currentId) === pick && order.length > 1) {
+        pick = order[Math.floor(Math.random() * order.length)];
+      }
+      location.hash = "p/" + encodeURIComponent(pick);
+    });
+  }
 
   document.addEventListener("keydown", function (e) {
     if (e.key === "/" && document.activeElement !== searchBox) {

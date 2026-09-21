@@ -89,7 +89,7 @@ html, body {
   flex: 0 1 auto;
 }
 
-#home-btn, #update-btn {
+#home-btn, #update-btn, #random-btn {
   flex: 0 0 auto;
   width: 34px;
   height: 34px;
@@ -100,7 +100,7 @@ html, body {
   font-size: 16px;
   cursor: pointer;
 }
-#home-btn:hover, #update-btn:hover { border-color: var(--accent); }
+#home-btn:hover, #update-btn:hover, #random-btn:hover { border-color: var(--accent); }
 
 #search-box {
   flex: 1;
@@ -559,7 +559,7 @@ a.link.external::after { content: " \2197"; font-size: 0.75em; opacity: 0.6; }
 
   .brand { display: none; }
 
-  #home-btn, #update-btn { width: 42px; height: 42px; font-size: 19px; }
+  #home-btn, #update-btn, #random-btn { width: 42px; height: 42px; font-size: 19px; }
 
   /* 16px avoids iOS Safari auto-zooming the page on focus */
   #search-box { font-size: 16px; padding: 10px 12px; }
