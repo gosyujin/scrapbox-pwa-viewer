@@ -25,7 +25,16 @@ HASHTAG_RE = re.compile(r"#([^\s\[\]#]+)")
 FULL_URL_RE = re.compile(r"^https?://\S+$")
 IMG_EXT_RE = re.compile(r"\.(png|jpe?g|gif|webp|svg)(\?\S*)?$", re.I)
 GYAZO_RE = re.compile(r"^https?://(i\.)?gyazo\.com/[0-9a-fA-F]+", re.I)
-DECORATION_RE = re.compile(r"^([*\-/_]+)\s(.*)$", re.S)
+# Scrapbox treats ANY leading run of non-alphanumeric, non-underscore
+# characters followed by a space as decoration marks -- not just the four
+# with built-in meaning (* - / _). Anything else (", <, >, !, ~, #, $, &, ',
+# (, ) ...) still becomes a decoration span (class "deco-<char>"); it just
+# has no visual effect unless the project's custom CSS targets that class,
+# same as in Scrapbox itself. Matching this generally (rather than a fixed
+# whitelist) also means unsupported syntax like [$ math] degrades to plain
+# text instead of being misparsed as a page-link.
+DECORATION_MARK = r"(?:[^\w\s\[\]]|_)"
+DECORATION_RE = re.compile(r"^(" + DECORATION_MARK + r"+)\s(.*)$", re.S)
 
 
 def esc(s):
@@ -120,9 +129,15 @@ def render_bracket(inner, link_lookup):
             classes.append("sb-em")
         if "_" in marks:
             classes.append("sb-underline")
-        if not classes:
+        custom_classes = []
+        for ch in marks:
+            if ch not in "*-/_":
+                cls = "deco-" + ch
+                if cls not in custom_classes:
+                    custom_classes.append(cls)
+        if not classes and not custom_classes:
             classes.append("sb-strong")
-        return '<span class="' + " ".join(classes) + '">' + rendered + "</span>"
+        return '<span class="' + esc(" ".join(classes + custom_classes)) + '">' + rendered + "</span>"
 
     # [[...]] -> strong link / strong image
     if inner.startswith("[") and inner.endswith("]") and len(inner) >= 2:
