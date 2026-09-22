@@ -113,7 +113,7 @@
     var parts = [];
     var globalText = getGlobalNote().trim();
     if (globalText) {
-      parts.push("[" + GLOBAL_NOTE_TITLE + "]\n\n" + globalText);
+      parts.push("[" + GLOBAL_NOTE_TITLE + "]\n" + globalText);
     }
     allNoteIds().forEach(function (id) {
       var text = getNote(id).trim();
