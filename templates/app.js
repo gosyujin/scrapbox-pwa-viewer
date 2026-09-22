@@ -132,6 +132,129 @@
     notesFallbackText.select();
   }
 
+  // -----------------------------------------------------------------------
+  // Bracket-link autocomplete for memo textareas (not the read-only page
+  // bodies): typing "[" auto-closes it, wrapping any current selection like
+  // Scrapbox does, and while the caret sits inside an unfinished "[...]" a
+  // plain list of matching page titles appears below the textarea.
+  //
+  // Deliberately not caret-anchored -- positioning a popup at the caret
+  // inside a <textarea> needs a hidden mirror-div to measure pixel offsets,
+  // which is fiddly and easy to get subtly wrong, especially once the
+  // mobile on-screen keyboard resizes the viewport. A fixed spot under the
+  // field is a little less slick but far more robust.
+  // -----------------------------------------------------------------------
+  var titleList = order.map(function (id) { return pages[id].t; });
+
+  function findBracketContext(value, caret) {
+    var openIdx = -1;
+    for (var i = caret - 1; i >= 0; i--) {
+      var ch = value.charAt(i);
+      if (ch === "]" || ch === "\n") return null;
+      if (ch === "[") { openIdx = i; break; }
+    }
+    if (openIdx === -1) return null;
+    var closeIdx = value.indexOf("]", caret);
+    if (closeIdx === -1) return null;
+    var between = value.slice(caret, closeIdx);
+    if (between.indexOf("[") !== -1 || between.indexOf("\n") !== -1) return null;
+    return { openIdx: openIdx, closeIdx: closeIdx, query: value.slice(openIdx + 1, caret) };
+  }
+
+  function matchTitles(query) {
+    var q = query.trim().toLowerCase();
+    if (!q) return [];
+    var starts = [];
+    var contains = [];
+    for (var i = 0; i < titleList.length; i++) {
+      var lc = titleList[i].toLowerCase();
+      var idx = lc.indexOf(q);
+      if (idx === 0 && starts.length < 8) starts.push(titleList[i]);
+      else if (idx > 0 && contains.length < 8) contains.push(titleList[i]);
+      if (starts.length >= 8 && contains.length >= 8) break;
+    }
+    return starts.concat(contains).slice(0, 8);
+  }
+
+  function attachBracketAutocomplete(textareaEl) {
+    if (!textareaEl || textareaEl._bracketWired) return;
+    textareaEl._bracketWired = true;
+
+    var box = document.createElement("div");
+    box.className = "note-suggest hidden";
+    textareaEl.insertAdjacentElement("afterend", box);
+
+    function hide() {
+      box.classList.add("hidden");
+      box.innerHTML = "";
+    }
+
+    function refresh() {
+      if (textareaEl.selectionStart !== textareaEl.selectionEnd) { hide(); return; }
+      var ctx = findBracketContext(textareaEl.value, textareaEl.selectionStart);
+      if (!ctx) { hide(); return; }
+      var matches = matchTitles(ctx.query);
+      if (!matches.length) { hide(); return; }
+      box.innerHTML = matches.map(function (t) {
+        return '<div class="note-suggest-item">' + escapeHtml(t) + "</div>";
+      }).join("");
+      box.classList.remove("hidden");
+    }
+
+    function applyChoice(title) {
+      var ctx = findBracketContext(textareaEl.value, textareaEl.selectionStart);
+      if (!ctx) return;
+      var val = textareaEl.value;
+      textareaEl.value = val.slice(0, ctx.openIdx + 1) + title + val.slice(ctx.closeIdx);
+      var pos = ctx.openIdx + 1 + title.length + 1;
+      textareaEl.selectionStart = textareaEl.selectionEnd = pos;
+      hide();
+      textareaEl.focus();
+      textareaEl.dispatchEvent(new Event("input"));
+    }
+
+    box.addEventListener("mousedown", function (e) {
+      var item = e.target.closest ? e.target.closest(".note-suggest-item") : null;
+      if (!item) return;
+      e.preventDefault();
+      applyChoice(item.textContent);
+    });
+
+    textareaEl.addEventListener("keydown", function (e) {
+      if (e.key === "[") {
+        e.preventDefault();
+        var start = textareaEl.selectionStart, end = textareaEl.selectionEnd;
+        var val = textareaEl.value;
+        var inner = val.slice(start, end);
+        textareaEl.value = val.slice(0, start) + "[" + inner + "]" + val.slice(end);
+        var pos = start + 1 + inner.length;
+        textareaEl.selectionStart = textareaEl.selectionEnd = pos;
+        textareaEl.dispatchEvent(new Event("input"));
+        refresh();
+        return;
+      }
+      if (e.key === "]") {
+        var p = textareaEl.selectionStart;
+        if (textareaEl.selectionStart === textareaEl.selectionEnd && textareaEl.value.charAt(p) === "]") {
+          e.preventDefault();
+          textareaEl.selectionStart = textareaEl.selectionEnd = p + 1;
+          hide();
+        }
+        return;
+      }
+      if (e.key === "Escape") hide();
+    });
+
+    textareaEl.addEventListener("input", refresh);
+    textareaEl.addEventListener("keyup", function (e) {
+      if (e.key.indexOf("Arrow") === 0) refresh();
+    });
+    textareaEl.addEventListener("click", refresh);
+    textareaEl.addEventListener("blur", function () {
+      setTimeout(hide, 150); // let a suggestion's mousedown land first
+    });
+  }
+
   function fmtDate(ts) {
     if (!ts) return "";
     var d = new Date(ts * 1000);
@@ -246,6 +369,7 @@
   function wireGlobalNote(el) {
     if (!el) return;
     el.value = getGlobalNote();
+    attachBracketAutocomplete(el);
     var timer = null;
     el.addEventListener("input", function () {
       clearTimeout(timer);
@@ -287,6 +411,7 @@
 
     var noteEl = mainEl.querySelector(".note-textarea");
     noteEl.value = getNote(id);
+    attachBracketAutocomplete(noteEl);
     var noteTimer = null;
     noteEl.addEventListener("input", function () {
       clearTimeout(noteTimer);

@@ -451,6 +451,26 @@ a.link.external::after { content: " \2197"; font-size: 0.75em; opacity: 0.6; }
 }
 .note-textarea:focus { outline: none; border-color: var(--accent); }
 
+.note-suggest {
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.note-suggest.hidden { display: none; }
+.note-suggest-item {
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.note-suggest-item:hover { background: var(--accent-bg); }
+.note-suggest-item + .note-suggest-item { border-top: 1px solid var(--border); }
+
 .backlinks {
   margin-top: 36px;
   padding-top: 12px;
