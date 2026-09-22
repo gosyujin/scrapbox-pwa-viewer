@@ -256,7 +256,12 @@ def tokenize_body(body_lines):
             j = i + 1
             while j < n:
                 raw2 = body_lines[j]
-                if raw2.strip() == "" or leading_spaces(raw2) <= indent:
+                # Indentation alone decides where the block ends. A merely
+                # whitespace line (e.g. a single space) still has a real
+                # indent deeper than the code: line and is just a blank line
+                # of code; only an actual dedent (including a truly empty,
+                # zero-indent line) ends the block.
+                if leading_spaces(raw2) <= indent:
                     break
                 block.append(raw2)
                 j += 1
@@ -270,7 +275,7 @@ def tokenize_body(body_lines):
             j = i + 1
             while j < n:
                 raw2 = body_lines[j]
-                if raw2.strip() == "" or leading_spaces(raw2) <= indent:
+                if leading_spaces(raw2) <= indent:
                     break
                 block.append(raw2)
                 j += 1
