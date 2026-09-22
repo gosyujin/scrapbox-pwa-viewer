@@ -76,20 +76,52 @@
     return ids;
   }
 
+  // A single always-available scratchpad, independent of whatever page is
+  // open -- shown under the notes bar on mobile (the list screen) or large
+  // in #main on desktop (the home screen), never both at once. Uses a key
+  // that can't collide with the per-page "sbnote:<id>" ones above.
+  var GLOBAL_NOTE_KEY = "sbnote_global";
+  var GLOBAL_NOTE_TITLE = "作業用ページ";
+
+  function getGlobalNote() {
+    try {
+      return localStorage.getItem(GLOBAL_NOTE_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function setGlobalNote(text) {
+    try {
+      if (text.trim() === "") {
+        localStorage.removeItem(GLOBAL_NOTE_KEY);
+      } else {
+        localStorage.setItem(GLOBAL_NOTE_KEY, text);
+      }
+    } catch (e) {}
+  }
+
   function updateNotesBar() {
     var ids = allNoteIds();
-    if (notesCountEl) notesCountEl.textContent = ids.length ? ids.length + " 件のメモ" : "メモなし";
-    if (notesCopyBtn) notesCopyBtn.disabled = ids.length === 0;
-    if (notesClearBtn) notesClearBtn.disabled = ids.length === 0;
+    var total = ids.length + (getGlobalNote().trim() ? 1 : 0);
+    if (notesCountEl) notesCountEl.textContent = total ? total + " 件のメモ" : "メモなし";
+    if (notesCopyBtn) notesCopyBtn.disabled = total === 0;
+    if (notesClearBtn) notesClearBtn.disabled = total === 0;
   }
 
   function buildNotesText() {
-    return allNoteIds().map(function (id) {
+    var parts = [];
+    var globalText = getGlobalNote().trim();
+    if (globalText) {
+      parts.push("[" + GLOBAL_NOTE_TITLE + "]\n\n" + globalText);
+    }
+    allNoteIds().forEach(function (id) {
       var text = getNote(id).trim();
-      if (!text) return null;
+      if (!text) return;
       var title = pages[id] ? pages[id].t : id;
-      return "[" + title + "]\n" + text;
-    }).filter(function (part) { return part; }).join("\n\n");
+      parts.push("[" + title + "]\n" + text);
+    });
+    return parts.join("\n\n");
   }
 
   function showNotesFallback(text) {
@@ -202,8 +234,26 @@
     document.title = meta.projectName || "Scrapbox Viewer";
     mainEl.innerHTML =
       '<div class="home-stats">' + order.length + ' ページ / エクスポート日時: ' + escapeHtml(meta.exportedAt || "") + '</div>' +
-      '<p>左のリストからページを選択するか、検索してください。（「/」キーで検索欄にフォーカス）</p>';
+      '<p>左のリストからページを選択するか、検索してください。（「/」キーで検索欄にフォーカス）</p>' +
+      '<div class="global-note">' +
+      '<h2>作業用メモ（この端末にのみ保存）</h2>' +
+      '<textarea id="global-note-desktop" placeholder="ページに紐付かないメモを入力…"></textarea>' +
+      '</div>';
     mainEl.scrollTop = 0;
+    wireGlobalNote(document.getElementById("global-note-desktop"));
+  }
+
+  function wireGlobalNote(el) {
+    if (!el) return;
+    el.value = getGlobalNote();
+    var timer = null;
+    el.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        setGlobalNote(el.value);
+        updateNotesBar();
+      }, 400);
+    });
   }
 
   function renderPage(id) {
@@ -353,13 +403,19 @@
   if (notesClearBtn) {
     notesClearBtn.addEventListener("click", function () {
       var ids = allNoteIds();
-      if (!ids.length) return;
-      if (!confirm(ids.length + " 件のメモを全て削除します。よろしいですか？")) return;
+      var hasGlobal = !!getGlobalNote().trim();
+      var total = ids.length + (hasGlobal ? 1 : 0);
+      if (!total) return;
+      if (!confirm(total + " 件のメモを全て削除します。よろしいですか？")) return;
       ids.forEach(function (id) { setNote(id, ""); });
+      setGlobalNote("");
       updateNotesBar();
       renderList();
       var noteEl = mainEl.querySelector(".note-textarea");
       if (noteEl) noteEl.value = "";
+      var globalDesktopEl = document.getElementById("global-note-desktop");
+      if (globalDesktopEl) globalDesktopEl.value = "";
+      if (globalMobileEl) globalMobileEl.value = "";
       showToast("削除しました");
     });
   }
@@ -369,6 +425,9 @@
       notesFallback.classList.add("hidden");
     });
   }
+
+  var globalMobileEl = document.getElementById("global-note-mobile");
+  wireGlobalNote(globalMobileEl);
 
   renderList();
   route();

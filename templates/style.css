@@ -471,6 +471,37 @@ a.link.external::after { content: " \2197"; font-size: 0.75em; opacity: 0.6; }
   margin-bottom: 12px;
 }
 
+/* General-purpose scratchpad memo (not tied to any one page). Shown either
+   under the notes bar on mobile or large in #main on desktop -- never
+   both; #global-note-mobile-slot is hidden by default and only revealed
+   under the mobile breakpoint below. */
+.global-note { margin-top: 20px; }
+.global-note h2 {
+  font-size: 13px;
+  color: var(--fg-muted);
+  font-weight: 600;
+  margin: 0 0 8px;
+}
+.global-note textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-alt);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+#main .global-note textarea { min-height: 260px; }
+
+#global-note-mobile-slot {
+  display: none;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+#global-note-mobile-slot textarea { min-height: 70px; }
+
 .toast {
   position: fixed;
   bottom: 20px;
@@ -563,6 +594,8 @@ a.link.external::after { content: " \2197"; font-size: 0.75em; opacity: 0.6; }
 
   /* 16px avoids iOS Safari auto-zooming the page on focus */
   #search-box { font-size: 16px; padding: 10px 12px; }
+
+  #global-note-mobile-slot { display: block; }
 
   #list-view {
     flex: 1 1 auto;
