@@ -37,6 +37,17 @@
       <div id="global-note-mobile-slot" class="global-note">
         <textarea id="global-note-mobile" placeholder="作業用メモ（この端末にのみ保存）"></textarea>
       </div>
+      <div id="sort-bar">
+        <label for="sort-select">並び替え</label>
+        <select id="sort-select">
+          <option value="modified" selected>更新日時</option>
+          <option value="created">作成日時</option>
+          <option value="lastVisited">最終閲覧（この端末）</option>
+          <option value="linked">被リンク数</option>
+          <option value="viewed">閲覧数</option>
+          <option value="cache">メモ優先</option>
+        </select>
+      </div>
       <div id="search-meta"></div>
       <div id="page-list"></div>
     </div>

@@ -164,6 +164,27 @@ html, body {
 
 .note-badge { color: var(--accent); font-size: 0.85em; }
 
+#sort-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+#sort-bar label { color: var(--fg-muted); }
+#sort-select {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 12px;
+}
+#sort-select:focus { outline: none; border-color: var(--accent); }
+
 #search-meta {
   position: sticky;
   top: 0;

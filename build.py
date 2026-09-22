@@ -404,6 +404,9 @@ def build(input_path, output_path, title_override=None):
             print("  parsed %d / %d pages" % (idx + 1, len(pages)), file=sys.stderr)
 
     order = sorted(pages_out.keys(), key=lambda pid: pages_out[pid]["u"], reverse=True)
+    order_created = sorted(pages_out.keys(), key=lambda pid: pages_out[pid]["c"], reverse=True)
+    order_linked = sorted(pages_out.keys(), key=lambda pid: len(pages_out[pid]["b"]), reverse=True)
+    order_viewed = sorted(pages_out.keys(), key=lambda pid: pages_out[pid]["v"], reverse=True)
 
     exported_str = ""
     if exported_ts:
@@ -414,6 +417,9 @@ def build(input_path, output_path, title_override=None):
     payload = {
         "pages": pages_out,
         "order": order,
+        "orderCreated": order_created,
+        "orderLinked": order_linked,
+        "orderViewed": order_viewed,
         "meta": {
             "projectName": project_name,
             "exportedAt": exported_str,

@@ -7,6 +7,16 @@
   var order = DATA.order; // array of ids, sorted by updated desc
   var meta = DATA.meta || {};
 
+  // Precomputed at build time (static data -> fixed order); "lastVisited"
+  // and "cache" are computed on the fly below since they depend on this
+  // browser's own local state.
+  var STATIC_ORDERS = {
+    modified: order,
+    created: DATA.orderCreated || order,
+    linked: DATA.orderLinked || order,
+    viewed: DATA.orderViewed || order,
+  };
+
   var searchTextCache = Object.create(null);
   function tagStrip(html) {
     return html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
@@ -30,6 +40,7 @@
   var brandLink = document.getElementById("brand-link");
   var updateBtn = document.getElementById("update-btn");
   var randomBtn = document.getElementById("random-btn");
+  var sortSelect = document.getElementById("sort-select");
   var toastEl = document.getElementById("toast");
   var notesCountEl = document.getElementById("notes-count");
   var notesCopyBtn = document.getElementById("notes-copy-btn");
@@ -100,6 +111,61 @@
         localStorage.setItem(GLOBAL_NOTE_KEY, text);
       }
     } catch (e) {}
+  }
+
+  // -----------------------------------------------------------------------
+  // Page list sorting, including two device-local variants that Scrapbox's
+  // own export data has no way to reproduce:
+  //   - "lastVisited": Scrapbox itself bases this on that user's server-side
+  //     browsing history, which isn't part of a page export at all. The
+  //     closest available substitute is to start tracking visits ourselves,
+  //     from now on, in this browser only.
+  //   - "cache": specific to this viewer -- pages with a saved memo first,
+  //     then everything else in the normal "modified" order.
+  // Kept as one JSON blob (not one localStorage key per page) so it doesn't
+  // grow into thousands of keys from heavy browsing and slow down the
+  // various "scan every key" helpers (allNoteIds and friends) elsewhere.
+  // -----------------------------------------------------------------------
+  var VISIT_KEY = "sbvisits";
+  var visitTimes = (function () {
+    try {
+      return JSON.parse(localStorage.getItem(VISIT_KEY) || "{}");
+    } catch (e) {
+      return {};
+    }
+  })();
+  var visitSaveTimer = null;
+
+  function recordVisit(id) {
+    visitTimes[id] = Date.now();
+    clearTimeout(visitSaveTimer);
+    visitSaveTimer = setTimeout(function () {
+      try { localStorage.setItem(VISIT_KEY, JSON.stringify(visitTimes)); } catch (e) {}
+    }, 300);
+  }
+
+  function getVisitTime(id) { return visitTimes[id] || 0; }
+
+  function lastVisitedOrder() {
+    return order.slice().sort(function (a, b) { return getVisitTime(b) - getVisitTime(a); });
+  }
+
+  function modifiedInCacheOrder() {
+    var noted = {};
+    allNoteIds().forEach(function (id) { if (pages[id]) noted[id] = true; });
+    var head = [], tail = [];
+    for (var i = 0; i < order.length; i++) {
+      (noted[order[i]] ? head : tail).push(order[i]);
+    }
+    return head.concat(tail);
+  }
+
+  var currentSort = "modified";
+
+  function currentSortOrder() {
+    if (currentSort === "lastVisited") return lastVisitedOrder();
+    if (currentSort === "cache") return modifiedInCacheOrder();
+    return STATIC_ORDERS[currentSort] || order;
   }
 
   function updateNotesBar() {
@@ -301,16 +367,17 @@
   var currentQuery = "";
 
   function renderList() {
+    var baseOrder = currentSortOrder();
     var q = currentQuery.trim().toLowerCase();
     var ids;
     var matchedByBody = false;
     if (!q) {
-      ids = order;
+      ids = baseOrder;
     } else {
       var titleMatches = [];
       var bodyMatches = [];
-      for (var i = 0; i < order.length; i++) {
-        var id = order[i];
+      for (var i = 0; i < baseOrder.length; i++) {
+        var id = baseOrder[i];
         var p = pages[id];
         if (p.t.toLowerCase().indexOf(q) !== -1) {
           titleMatches.push(id);
@@ -395,6 +462,7 @@
       mainEl.innerHTML = '<p>ページが見つかりません。</p>';
       return;
     }
+    recordVisit(id);
     document.title = p.t;
     var backlinksHtml = "";
     if (p.b && p.b.length) {
@@ -490,6 +558,13 @@
 
   homeBtn.addEventListener("click", goHome);
   if (brandLink) brandLink.addEventListener("click", goHome);
+
+  if (sortSelect) {
+    sortSelect.addEventListener("change", function () {
+      currentSort = sortSelect.value;
+      renderList();
+    });
+  }
 
   if (randomBtn) {
     randomBtn.addEventListener("click", function () {
