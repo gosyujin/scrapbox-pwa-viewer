@@ -15,6 +15,7 @@
     created: DATA.orderCreated || order,
     linked: DATA.orderLinked || order,
     viewed: DATA.orderViewed || order,
+    title: DATA.orderTitle || order,
   };
 
   var searchTextCache = Object.create(null);
@@ -160,7 +161,7 @@
     return head.concat(tail);
   }
 
-  var currentSort = "modified";
+  var currentSort = "cache";
 
   function currentSortOrder() {
     if (currentSort === "lastVisited") return lastVisitedOrder();
