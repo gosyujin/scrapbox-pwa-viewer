@@ -220,8 +220,16 @@
       applyChoice(item.textContent);
     });
 
-    textareaEl.addEventListener("keydown", function (e) {
-      if (e.key === "[") {
+    // beforeinput (not keydown) is what actually intercepts insertion
+    // reliably on mobile: iOS Safari's software keyboard doesn't reliably
+    // honor preventDefault() on keydown for plain character keys, so the
+    // original "[" character would still land right where we'd just placed
+    // the caret between our own auto-inserted brackets, producing "[[]"
+    // instead of "[]". beforeinput is the modern, IME/soft-keyboard-safe
+    // way to cancel and replace an about-to-happen text insertion.
+    textareaEl.addEventListener("beforeinput", function (e) {
+      if (e.inputType !== "insertText") return;
+      if (e.data === "[") {
         e.preventDefault();
         var start = textareaEl.selectionStart, end = textareaEl.selectionEnd;
         var val = textareaEl.value;
@@ -231,17 +239,17 @@
         textareaEl.selectionStart = textareaEl.selectionEnd = pos;
         textareaEl.dispatchEvent(new Event("input"));
         refresh();
-        return;
-      }
-      if (e.key === "]") {
+      } else if (e.data === "]") {
         var p = textareaEl.selectionStart;
         if (textareaEl.selectionStart === textareaEl.selectionEnd && textareaEl.value.charAt(p) === "]") {
           e.preventDefault();
           textareaEl.selectionStart = textareaEl.selectionEnd = p + 1;
           hide();
         }
-        return;
       }
+    });
+
+    textareaEl.addEventListener("keydown", function (e) {
       if (e.key === "Escape") hide();
     });
 
