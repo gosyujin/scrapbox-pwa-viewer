@@ -27,6 +27,7 @@
   var searchBox = document.getElementById("search-box");
   var searchMeta = document.getElementById("search-meta");
   var homeBtn = document.getElementById("home-btn");
+  var brandLink = document.getElementById("brand-link");
   var updateBtn = document.getElementById("update-btn");
   var randomBtn = document.getElementById("random-btn");
   var toastEl = document.getElementById("toast");
@@ -474,7 +475,7 @@
 
   window.addEventListener("hashchange", route);
 
-  homeBtn.addEventListener("click", function () {
+  function goHome() {
     searchBox.value = "";
     currentQuery = "";
     renderList();
@@ -485,7 +486,10 @@
       location.hash = "";
     }
     searchBox.blur();
-  });
+  }
+
+  homeBtn.addEventListener("click", goHome);
+  if (brandLink) brandLink.addEventListener("click", goHome);
 
   if (randomBtn) {
     randomBtn.addEventListener("click", function () {

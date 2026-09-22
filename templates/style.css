@@ -87,7 +87,14 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   flex: 0 1 auto;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
 }
+.brand:hover { color: var(--fg); }
 
 #home-btn, #update-btn, #random-btn {
   flex: 0 0 auto;
@@ -101,6 +108,10 @@ html, body {
   cursor: pointer;
 }
 #home-btn:hover, #update-btn:hover, #random-btn:hover { border-color: var(--accent); }
+
+/* Desktop uses the clickable .brand text as the "go home" affordance;
+   the dedicated home button only reappears once .brand is hidden on mobile. */
+#home-btn { display: none; }
 
 #search-box {
   flex: 1;
@@ -609,6 +620,8 @@ a.link.external::after { content: " \2197"; font-size: 0.75em; opacity: 0.6; }
   }
 
   .brand { display: none; }
+
+  #home-btn { display: inline-block; }
 
   #home-btn, #update-btn, #random-btn { width: 42px; height: 42px; font-size: 19px; }
 

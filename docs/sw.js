@@ -8,7 +8,7 @@
 // (via activate) drops the old one. The page listens for "controllerchange"
 // and reloads once this worker takes over, so a fresh export applies itself
 // automatically the next time the app is opened while online.
-var CACHE_NAME = "sb-viewer-1789917130-91162b1";
+var CACHE_NAME = "sb-viewer-1789917130-fae0560";
 
 self.addEventListener("install", function (event) {
   var page = new URL(self.location.href).searchParams.get("page");
